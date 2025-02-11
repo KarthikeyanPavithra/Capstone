@@ -2,8 +2,8 @@ import os
 from flask import Flask, request, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from auth import requires_auth
-from models import setup_db, Movie, Actor
+from auth import AuthError, requires_auth
+from models import setup_db, Movie, Actor, db
 
 def create_app(test_config=None):
     # Create and configure the app
@@ -53,7 +53,7 @@ def create_app(test_config=None):
       @app.route('/actors/<int:actor_id>', methods=['PATCH'])
       @requires_auth('patch:actors')
       def update_actor(payload, actor_id):
-          actor = Actor.query.get(actor_id)
+          actor = db.session.get(Actor, actor_id)
           if not actor:
               abort(404, "actor not found")
           
@@ -68,7 +68,7 @@ def create_app(test_config=None):
       @app.route('/movies/<int:movie_id>', methods=['PATCH'])
       @requires_auth('patch:movies')
       def update_movie(payload, movie_id):
-          movie = Movie.query.get(movie_id)
+          movie = db.session.get(Movie, movie_id)
           if not movie:
               abort(404, "Movie not found.")
           
@@ -82,7 +82,7 @@ def create_app(test_config=None):
       @app.route('/actors/<int:actor_id>', methods=['DELETE'])
       @requires_auth('delete:actors')
       def delete_actor(payload, actor_id):
-          actor = Actor.query.get(actor_id)
+          actor = db.session.get(Actor, actor_id)
           if not actor:
               abort(404, "Actor not found.")
           
@@ -93,7 +93,7 @@ def create_app(test_config=None):
       @app.route('/movies/<int:movie_id>', methods=['DELETE'])
       @requires_auth('delete:movies')
       def delete_movie(payload, movie_id):
-          movie = Movie.query.get(movie_id)
+          movie = db.session.get(Movie, movie_id)
           if not movie:
               abort(404,"Movie not found")
           
@@ -147,6 +147,11 @@ def create_app(test_config=None):
               "message": "Internal server error"
           }), 500
 
+      @app.errorhandler(AuthError)
+      def handle_auth_error(e):
+          response = jsonify(e.error)
+          response.status_code = e.status_code
+          return response
 
       return app
 

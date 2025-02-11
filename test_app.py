@@ -1,73 +1,84 @@
 import unittest
 import json
+from flask_sqlalchemy import SQLAlchemy
 from app import create_app
-
-# Sample tokens for different roles (Replace with actual tokens)
-CASTING_ASSISTANT_TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2N2FiOGVjYzI0ZTA2NDI2ZTU5NTkzZGUiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTI5NjU0NiwiZXhwIjoxNzM5MzAzNzQ2LCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZ2V0OmFjdG9ycyIsImdldDptb3ZpZXMiXX0.QbXr8z_lHA-qemrQi0_-vPoX7tEPeaZnlIIwdZBxFGCyfV4K-DVEhlJ7M4_aNPh-KnuJlALXEpGSyw3hZBzgAz3xuAyxyo1-G5ZeaNuiE87-dJgYfxzVt4VQPNAEZZ7OAEsPIALbya_Y97kLZq_wmWMShNZOW2j6ZGBUQ0_OXi8yN5BTNHFh2hikGwqHqqujEVWlzdSMBx01eVS3lfDqSKx5MKMpk3f5p7Q2rHprLZmrsMRcfnw5n6u4fXL-fX4TgZQk8F3MvcdwN7sCvd7VlE_X9uD8k5-Pjwz3asMgojfDmkxDGN6KUX8B2JDYDAzQVXDNcVYrQ611xH492pKzag"
-CASTING_DIRECTOR_TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NzliMjJiZmY1NzY4ZDY4N2NiOWM0MjYiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTI5NjM1NiwiZXhwIjoxNzM5MzAzNTU2LCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZGVsZXRlOmFjdG9ycyIsImdldDphY3RvcnMiLCJnZXQ6bW92aWVzIiwicGF0Y2g6bW92aWVzIiwicG9zdDphY3RvcnMiXX0.Rk_FhLVpZD6Sie8FR2ge2v85v4czfrKfSdUaohFd7YLwsMRWz2ogS0VmUvYpnK-uQ-zwpjGy6JZb6wI0kAsDXx1IjT2eVNvAGydNYDz5q5S9POYInB4CIuTPuMsWUkTsdVav-oMnpkZ82UXLvZdrlTO4fFLkJwH8ifuMUDHni2AjZBLcCwksTNbvar6EL3Cx781WIFz3FRq2teKILMoQBEJ8c6k6gpI_Zw2rmGNBknCePSNjWm6pO2yw1Z1KyFB7jbzDSGEDMsVkeRTufziTMBQFvohJyZIC03ZjL1794zPM3D6U4XyNVtwgHQ1lo-_B5T9Q5aisl7GCPO_C-CBkqA"
-EXECUTIVE_PRODUCER_TOKEN = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2Nzk0OTEwZDZmZTZkNTIzZDMwNjgwYjYiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTI5NjA1NiwiZXhwIjoxNzM5MzAzMjU2LCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZGVsZXRlOmFjdG9ycyIsImRlbGV0ZTptb3ZpZXMiLCJnZXQ6YWN0b3JzIiwiZ2V0Om1vdmllcyIsInBhdGNoOmFjdG9ycyIsInBhdGNoOm1vdmllcyIsInBvc3Q6YWN0b3JzIiwicG9zdDptb3ZpZXMiXX0.iqh0yYA7hYS563FpQyWwPij7SmNMTciQtlLOlRKDn_t16Lwg8uED9syaYJ8Z0Is0Jb3NyRza-Jqe9PLJH7xJ5jvMLiexmlB2lMLEHuKLqxngNC-9C2gToss1Yg-eracP3gP3PtGO0RsQUuPl2mxNTpDWpFhYIkGJef4DceBKsibMNUIxChIh5J97F0dTsOczIpBsd7ZBM4xvpzh8jcBdwMmsS7Ab-bPL1mWwyz3MrtyYht8EP5Ek1eMjevctL8mbbQaQtEC_DlCR8fnJDN8wrYcsKh-QCzBMgaS_Ob2aS4N_ULbm2YGoLuo5upsxCxSrSvXzWZ0cfW37DNw78u6aqQ"
-INVALID_TOKEN = "Bearer invalid_token"
+from models import db
 
 class CastingAgencyTestCase(unittest.TestCase):
+    """This class represents the casting agency test case"""
+
     def setUp(self):
-        self.app = create_app().test_client()
-        self.headers_assistant = {"Authorization": CASTING_ASSISTANT_TOKEN}
-        self.headers_director = {"Authorization": CASTING_DIRECTOR_TOKEN}
-        self.headers_producer = {"Authorization": EXECUTIVE_PRODUCER_TOKEN}
-        self.headers_invalid = {"Authorization": INVALID_TOKEN}
+        """Define test variables and initialize app."""
+        self.app = create_app()
+        self.client = self.app.test_client
+        # self.database_path = "postgresql://localhost:5432/casting_test"
 
-    def test_get_actors_success(self):
-        res = self.app.get("/actors", headers=self.headers_assistant)
-        data = json.loads(res.data)
-        self.assertEqual(res.status_code, 200)
-        self.assertIn("actors", data)
+        self.production_exec_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2Nzk0OTEwZDZmZTZkNTIzZDMwNjgwYjYiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTMwNDE2OSwiZXhwIjoxNzM5MzExMzY5LCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZGVsZXRlOmFjdG9ycyIsImRlbGV0ZTptb3ZpZXMiLCJnZXQ6YWN0b3JzIiwiZ2V0Om1vdmllcyIsInBhdGNoOmFjdG9ycyIsInBhdGNoOm1vdmllcyIsInBvc3Q6YWN0b3JzIiwicG9zdDptb3ZpZXMiXX0.EPThSkH-HZR5ercNeQzkkPQYta3xsU4PqpBp_v1tOStUsCEbsLNVCsoK8iC719UU95MXl8dHO3_8yFncdt6eEJLeTHndbZgHqguTBaucNi-JUo3QRQQe0VJpmWX1OQaSSmn9YNhNBYt_x0bTjnz3YU09SgA-dRYoFqX0Vekq6JFigHqCzk3NsqtbyE5GFiZzHtzUXjw8HtMa-i19yroBPsZNaFLBOZWz-YpfO4mtTVb-rwEI_cFDHQDVyG9LLf8OJNjiXl56kVq-aaHCo48oJQRC_UdvYC9DehkFnLXCSe_P3jgMNFbesWs4himBdM-duLamPNgyRAF_FRr6xJokhg"
+        self.assistant_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2N2FiOGVjYzI0ZTA2NDI2ZTU5NTkzZGUiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTMwNDUxMCwiZXhwIjoxNzM5MzExNzEwLCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZ2V0OmFjdG9ycyIsImdldDptb3ZpZXMiXX0.UybkFSbbstKxc7OWx5OFHUK2NFImDbZwx49pkyjjRWeX-Wxj96CaA0q_dIIlk7We_jLjp-yxc-Jxs58i73uNwTbXWhHFty8sBk0dRTpNF2cmYuA3tVeYCqVQSZc7WtDP-RfBYTVN9NLxD9G1Egh9dRd6Aw_szhkOrBDoJdpWhTpjWLDH-YE6TcouQGLL9Xc1VITydtr8OTD__HTqU-JMx0xhGFzvC1ILPwxIA3S_hf6M_bdR2ZiGTCsDFVTJ5j8PnuG2228i6hXNuqeuYS_iI-Qri0wGUurz9jwxqGlPFZPo_n9AA4PPMzkxOJNZ19p5OUTS3cq0NUuM-yadfY-_Ng"
+        self.director_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NzliMjJiZmY1NzY4ZDY4N2NiOWM0MjYiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTMwNDM3NCwiZXhwIjoxNzM5MzExNTc0LCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZGVsZXRlOmFjdG9ycyIsImdldDphY3RvcnMiLCJnZXQ6bW92aWVzIiwicGF0Y2g6bW92aWVzIiwicG9zdDphY3RvcnMiXX0.dVKXMd6xESoP33G54S0v0IkQ-n437ut3icZx3VJD2KURRrAw6ZDfX3fQQWSEGw-jqtiJkJilIeNmRFd0LsX_t9Rd-_C19u-dEjzy8W_ytHjrbzGg3XCciN5Fo0Q9WVcBSTI04k4RgrAPXlISiYl1bhvrvWDl7qQIWjkP0iIZVhshnDK0FPiUlHAfR7TzyOlUfb3YcdvIxAQX5cQkLWwnBQD12t-VvDfTIKfRJ3mDN4j8ydSKlEsOxZLkH5PCEyrWhIasGDMFn8ffdHxcUbCfssZfVmPgjmrWve4QlNBtjITRLCPuDuFGvKQ4OY0dkAsxiekAfRHToVgUzMc_eUQIdw" 
+        self.invalid_token= "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InVpNk11SmdGUE1qNTVrYUR1X0MxSSJ9.eyJpc3MiOiJodHRwczovL3Bhdmlkc25kLmpwLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw2N2FiOGVjYzI0ZTA2NDI2ZTU5NTkzZGUiLCJhdWQiOiJtZWRpYSIsImlhdCI6MTczOTI5NjU0NiwiZXhwIjoxNzM5MzAzNzQ2LCJzY29wZSI6IiIsImF6cCI6IkxWM1gxVmJvT2JFZno2bVIxRXhJWTJQYkhneExnbEltIiwicGVybWlzc2lvbnMiOlsiZ2V0OmFjdG9ycyIsImdldDptb3ZpZXMiXX0.QbXr8z_lHA-qemrQi0_-vPoX7tEPeaZnlIIwdZBxFGCyfV4K-DVEhlJ7M4_aNPh-KnuJlALXEpGSyw3hZBzgAz3xuAyxyo1-G5ZeaNuiE87-dJgYfxzVt4VQPNAEZZ7OAEsPIALbya_Y97kLZq_wmWMShNZOW2j6ZGBUQ0_OXi8yN5BTNHFh2hikGwqHqqujEVWlzdSMBx01eVS3lfDqSKx5MKMpk3f5p7Q2rHprLZmrsMRcfnw5n6u4fXL-fX4TgZQk8F3MvcdwN7sCvd7VlE_X9uD8k5-Pjwz3asMgojfDmkxDGN6KUX8B2JDYDAzQVXDNcVYrQ611xH492pKzag"
+        
 
-    def test_get_actors_unauthorized(self):
-        res = self.app.get("/actors", headers=self.headers_invalid)
-        self.assertEqual(res.status_code, 401)
+        with self.app.app_context():
+           db.create_all()
 
-    def test_add_actor_success(self):
-        new_actor = {"name": "John Doe", "age": 30, "gender": "male"}
-        res = self.app.post("/actors", json=new_actor, headers=self.headers_director)
-        self.assertEqual(res.status_code, 201)
+    def get_headers(self, token):
+        return {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
 
-    def test_add_actor_forbidden(self):
-        new_actor = {"name": "Jane Doe", "age": 25, "gender": "female"}
-        res = self.app.post("/actors", json=new_actor, headers=self.headers_assistant)
-        self.assertEqual(res.status_code, 403)
-
-    def test_delete_actor_success(self):
-        res = self.app.delete("/actors/1", headers=self.headers_producer)
+    def test_get_movies_as_director(self):
+        res = self.client().get('/movies', headers=self.get_headers(self.director_token))
         self.assertEqual(res.status_code, 200)
 
-    def test_delete_actor_forbidden(self):
-        res = self.app.delete("/actors/1", headers=self.headers_assistant)
-        self.assertEqual(res.status_code, 403)
-
-    def test_get_movies_success(self):
-        res = self.app.get("/movies", headers=self.headers_assistant)
-        data = json.loads(res.data)
+    def test_get_movies_as_actor(self):
+        res = self.client().get('/movies', headers=self.get_headers(self.assistant_token))
         self.assertEqual(res.status_code, 200)
-        self.assertIn("movies", data)
 
-    def test_add_movie_success(self):
+    def test_get_movies_as_production_exec(self):
+        res = self.client().get('/movies', headers=self.get_headers(self.production_exec_token))
+        self.assertEqual(res.status_code, 200)
+
+    def test_add_movie_as_director(self):
         new_movie = {"title": "New Movie", "release_date": "2025-01-01"}
-        res = self.app.post("/movies", json=new_movie, headers=self.headers_producer)
+        res = self.client().post('/movies', headers=self.get_headers(self.director_token), json=new_movie)
+        self.assertEqual(res.status_code, 403)
+
+    def test_add_movie_as_production_exec(self):
+        new_movie = {"title": "New Movie", "release_date": "2025-01-01"}
+        res = self.client().post('/movies', headers=self.get_headers(self.production_exec_token), json=new_movie)
         self.assertEqual(res.status_code, 201)
 
-    def test_add_movie_forbidden(self):
-        new_movie = {"title": "Restricted Movie", "release_date": "2025-01-01"}
-        res = self.app.post("/movies", json=new_movie, headers=self.headers_assistant)
+    def test_add_actor_as_director(self):
+        new_actor = {"name": "New Actor", "age": 30, "gender": "male"}
+        res = self.client().post('/actors', headers=self.get_headers(self.director_token), json=new_actor)
+        self.assertEqual(res.status_code, 201)
+
+    def test_add_actor_as_actor(self):
+        new_actor = {"name": "New Actor", "age": 30, "gender": "male"}
+        res = self.client().post('/actors', headers=self.get_headers(self.assistant_token), json=new_actor)
         self.assertEqual(res.status_code, 403)
 
-    def test_delete_movie_success(self):
-        res = self.app.delete("/movies/1", headers=self.headers_producer)
-        self.assertEqual(res.status_code, 200)
-
-    def test_delete_movie_forbidden(self):
-        res = self.app.delete("/movies/1", headers=self.headers_assistant)
+    def test_delete_movie_as_director(self):
+        res = self.client().delete('/movies/1', headers=self.get_headers(self.director_token))
         self.assertEqual(res.status_code, 403)
+        
+    def test_delete_actor_as_director(self):
+        # First, add an actor to ensure it exists
+        new_actor = {"name": "Test Actor", "age": 35, "gender": "male"}
+        add_res = self.client().post('/actors', headers=self.get_headers(self.director_token), json=new_actor)
+        actor_id = add_res.json.get("actor", {}).get("id")  # Get the created actor ID
+
+        # Now, attempt to delete the actor
+        res = self.client().delete(f'/actors/{actor_id}', headers=self.get_headers(self.director_token))
+        print(res)
+        self.assertEqual(res.status_code, 200)  # Ensure successful deletion
+
+    def test_delete_actor_as_actor(self):
+        res = self.client().delete('/actors/1', headers=self.get_headers(self.assistant_token))
+        self.assertEqual(res.status_code, 403)
+
+    def test_unauthorized_access(self):
+        res = self.client().get('/movies', headers=self.get_headers(self.invalid_token))
+        self.assertEqual(res.status_code, 401)
 
 if __name__ == "__main__":
     unittest.main()
-
