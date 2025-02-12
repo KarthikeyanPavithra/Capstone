@@ -1,7 +1,7 @@
 #!/bin/bash
 export DATABASE_URL='postgresql://postgres_deployment_example_rfoi_user:3W2IbLdFYW2D8IHeLh1q9U6ZLFSmfTm9@dpg-culgn92n91rc73ec50p0-a/postgres_deployment_example_rfoi'
 export EXCITED='true'
-export FLASK_APP=app.py
+export FLASK_APP=api.py
 export AUTH0_DOMAIN='pavidsnd.jp.auth0.com'
 export ALGORITHMS=['RS256']
 export API_AUDIENCE='media'
