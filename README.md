@@ -69,7 +69,7 @@ The Executive Producer has full access to manage actors and movies, while the Ca
 ### **Render Deployment Details:**
 
 This application is hosted on Render at:
-**[https://your-casting-agency.onrender.com/](https://your-casting-agency.onrender.com/)**
+**[https://capstone-kpj9.onrender.com]**
 
 ### **API Endpoints:**
 
@@ -118,13 +118,11 @@ This application is hosted on Render at:
         "id": 1,
         "title": "Inception",
         "release_date": "2010-07-16",
-        "actors": [1]
     },
     {
         "id": 2,
         "title": "Black Widow",
         "release_date": "2021-07-09",
-        "actors": [2]
     }
 ]
 ```
@@ -153,7 +151,6 @@ This application is hosted on Render at:
 {
     "title": "Mission Impossible",
     "release_date": "1996-05-22",
-    "actors": [3]
 }
 ```
 
